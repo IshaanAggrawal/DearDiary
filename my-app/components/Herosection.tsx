@@ -3,6 +3,7 @@
 import { ArrowRight, Lock } from 'lucide-react';
 import { motion } from 'framer-motion';
 import BlurText from '@/components/ui/BlurText';
+import Ribbons from '@/components/ui/RibbonsProps';
 
 export default function HeroSection() {
   const primaryColor = 'indigo';
@@ -25,9 +26,20 @@ export default function HeroSection() {
   return (
     <section className="relative min-h-screen flex items-center justify-center px-6 pt-20 sm:pt-24 lg:pt-32 overflow-hidden bg-black mt-0">
       <div className="absolute inset-0 overflow-hidden">
+        {/* Multiple Ribbon backgrounds */}
+        <div style={{ height: '100%', position: 'absolute', top: 0, left: 0, width: '100%', zIndex: 1 }}>
+          <Ribbons
+            baseThickness={30}
+            colors={['#6366f1']} // Indigo
+            speedMultiplier={0.25}
+            maxAge={400}
+            enableFade={false}
+            enableShaderEffect={true}
+          />
+        </div>
         <div className={`absolute top-10 left-10 w-80 h-80 bg-${primaryColor}-500/20 rounded-full blur-[120px] animate-pulse`} />
         <div className="absolute bottom-10 right-10 w-80 h-80 bg-fuchsia-500/20 rounded-full blur-[120px] animate-pulse delay-500" />
-        <div className="absolute inset-0 bg-grid-white/[0.03] bg-[length:60px_60px]" />
+        <div className="absolute inset-0 bg-grid-white/[0.03] bg-size-[60px_60px]" />
         <div className="absolute inset-0 bg-black/30" />
       </div>
 

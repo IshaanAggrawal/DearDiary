@@ -68,7 +68,7 @@ export default function FeaturesSection() {
 
   return (
     <motion.div
-      className="grid grid-cols-1 sm:grid-cols-3 gap-6  border-t border-white/10 max-w-4xl mx-auto"
+      className="grid grid-cols-1 sm:grid-cols-3 gap-6   max-w-4xl mx-auto"
       variants={containerVariants}
       initial="hidden"
       whileInView="show"
