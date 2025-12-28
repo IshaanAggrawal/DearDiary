@@ -33,7 +33,6 @@ export default function Home() {
 
   return (
     <div className="min-h-screen bg-black">
-      <Navbar />
       <motion.div
         variants={containerVariants}
         initial="hidden"
@@ -42,19 +41,15 @@ export default function Home() {
         <motion.div variants={itemVariants}>
           <HeroSection />
         </motion.div>
-        {/* Infinite Scrolling Horizontal Animation with Same Feature Code */}
         <motion.div variants={itemVariants}>
           <InfiniteFeatures />
         </motion.div>
-        {/* Steps Scroll Stack Section */}
         <motion.div variants={itemVariants}>
           <StepsScrollStack />
         </motion.div>
-        {/* Sample Diary Section */}
         <motion.div variants={itemVariants}>
           <SampleDiarySection />
         </motion.div>
-        {/* Features Section with Count Up Animation */}
         <motion.div variants={itemVariants}>
           <div className="relative z-10 max-w-7xl mx-auto px-6 py-24">
             <FeaturesSection />
