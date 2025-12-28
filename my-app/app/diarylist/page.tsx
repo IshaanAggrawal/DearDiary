@@ -2,23 +2,26 @@
 
 import { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { useAccount, useReadContract, useConnect } from 'wagmi';
+import { useAccount, useReadContract, useConnect, useSignMessage } from 'wagmi';
 import { injected } from 'wagmi/connectors';
-import { Calendar, Tag, Lock, Loader2, BookOpen, Wallet, ShieldCheck } from 'lucide-react';
+import { Calendar, Tag, Lock, BookOpen, Wallet, ShieldCheck, Unlock, Loader2 } from 'lucide-react';
 import BlurText from '@/components/ui/BlurText';
+import { generateKey, decryptData } from '@/utils/encryption';
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_DIARY_CONTRACT as `0x${string}`;
+
+// --- FIX: UPDATED ABI TO MATCH CONTRACT ("getMyDiaries") ---
 const CONTRACT_ABI = [
   {
     "inputs": [],
-    "name": "getMyEntries",
+    "name": "getMyDiaries", // <--- CHANGED FROM getMyEntries to getMyDiaries
     "outputs": [
       {
         "components": [
           { "internalType": "string", "name": "ipfsHash", "type": "string" },
           { "internalType": "uint256", "name": "timestamp", "type": "uint256" }
         ],
-        "internalType": "struct DiaryRegistry.Entry[]",
+        "internalType": "struct DiaryRegistry.DiaryEntry[]",
         "name": "",
         "type": "tuple[]"
       }
@@ -35,44 +38,106 @@ interface DiaryEntry {
   content: string;
   tags: string;
   date: string;
+  isEncrypted: boolean;
+  isLocked?: boolean;
 }
 
 export default function DiaryEntriesPage() {
   const { address, isConnected } = useAccount();
   const { connect } = useConnect();
+  const { signMessageAsync } = useSignMessage();
+  
   const [hydratedEntries, setHydratedEntries] = useState<DiaryEntry[]>([]);
+  const [isDecrypted, setIsDecrypted] = useState(false); 
+  const [decryptionKey, setDecryptionKey] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
+  const [status, setStatus] = useState("");
 
   const { data: rawEntries, isLoading: isContractLoading } = useReadContract({
     address: CONTRACT_ADDRESS,
     abi: CONTRACT_ABI,
-    functionName: 'getMyEntries',
+    functionName: 'getMyDiaries', // <--- UPDATED FUNCTION NAME HERE TOO
     account: address,
     query: {
         enabled: !!address,
     }
   });
 
+  // 1. Ask user to sign to generate the decryption key
+  const handleUnlock = async () => {
+    try {
+      const signature = await signMessageAsync({ 
+        message: "Sign this message to generate your secure encryption key for DearDiary." 
+      });
+      const key = generateKey(signature);
+      setDecryptionKey(key);
+      setIsDecrypted(true);
+    } catch (err) {
+      console.error("User declined signature", err);
+    }
+  };
+
+  // 2. Fetch & Decrypt logic
   useEffect(() => {
-    if (rawEntries && (rawEntries as any[]).length > 0) {
+    if (rawEntries && (rawEntries as any[]).length > 0 && isDecrypted && decryptionKey) {
       const fetchIPFSContent = async () => {
         setLoading(true);
+        setStatus("Decrypting Timeline...");
         try {
+          // Create a copy to reverse (newest first)
           const reversedRaw = [...(rawEntries as any[])].reverse();
+          
           const results = await Promise.all(
             reversedRaw.map(async (entry) => {
               try {
                 const response = await fetch(`https://gateway.pinata.cloud/ipfs/${entry.ipfsHash}`);
+                
+                if (!response.ok) throw new Error("IPFS Fetch Failed");
+                
                 const meta = await response.json();
+                
+                let finalData = { title: "", content: "", tags: "", timestamp: "" };
+                let isEncrypted = false;
+                let isLocked = false;
+
+                // CHECK: Is this a new Encrypted entry?
+                if (meta.encrypted && meta.ciphertext) {
+                  isEncrypted = true;
+                  const decrypted = decryptData(meta.ciphertext, decryptionKey);
+                  
+                  if (decrypted) {
+                    finalData = decrypted;
+                  } else {
+                    isLocked = true;
+                    finalData = { 
+                      title: "Encrypted Entry", 
+                      content: "Unable to decrypt. Did you use a different wallet?", 
+                      tags: "locked", 
+                      timestamp: new Date().toISOString() 
+                    };
+                  }
+                } else {
+                  // OLD ENTRY (Legacy Support)
+                  finalData = {
+                    title: meta.title || "Untitled",
+                    content: meta.text || meta.content || "No Content",
+                    tags: meta.tags || "",
+                    timestamp: meta.timestamp || new Date().toISOString()
+                  };
+                }
+
                 return {
                   hash: entry.ipfsHash,
                   blockTime: Number(entry.timestamp),
-                  title: meta.title || "Untitled Entry",
-                  content: meta.text || "No content",
-                  tags: meta.tags || "",
-                  date: meta.timestamp || new Date().toISOString()
+                  title: finalData.title,
+                  content: finalData.content,
+                  tags: finalData.tags,
+                  date: finalData.timestamp,
+                  isEncrypted,
+                  isLocked
                 };
               } catch (err) {
+                console.error("Failed to fetch/parse IPFS:", err);
                 return null; 
               }
             })
@@ -82,11 +147,14 @@ export default function DiaryEntriesPage() {
           console.error("Error fetching diary data:", error);
         } finally {
           setLoading(false);
+          setStatus("");
         }
       };
       fetchIPFSContent();
     }
-  }, [rawEntries]); 
+  }, [rawEntries, isDecrypted, decryptionKey]); 
+
+  // -- RENDER STATES --
 
   if (!isConnected) {
     return (
@@ -106,25 +174,48 @@ export default function DiaryEntriesPage() {
           
           <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">Timeline Locked</h2>
           <p className="text-gray-400 mb-6 sm:mb-8 leading-relaxed text-sm sm:text-base">
-            Your personal history is encrypted on the blockchain. We need your wallet signature to verify ownership and decrypt your entries.
+            Your personal history is encrypted on the blockchain. Connect your wallet to access.
           </p>
 
           <button
             onClick={() => connect({ connector: injected() })}
-            className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-xl transition-all transform hover:scale-[1.02] hover:shadow-lg hover:shadow-indigo-500/25 flex items-center justify-center gap-3"
+            className="w-full py-4 bg-gradient-to-r from-indigo-600 to-purple-600 hover:from-indigo-500 hover:to-purple-500 text-white font-bold rounded-xl transition-all flex items-center justify-center gap-3"
           >
             <Wallet className="w-5 h-5" />
-            Connect & Decrypt
+            Connect Wallet
           </button>
-          
-          <div className="mt-4 sm:mt-6 flex items-center justify-center gap-2 text-xs text-gray-500">
-            <ShieldCheck className="w-3 h-3" />
-            <span>Zero-Knowledge Privacy • End-to-End Encryption</span>
-          </div>
         </motion.div>
       </div>
     );
   }
+
+  // 2. Connected, But Locked (Needs Signature)
+  if (isConnected && !isDecrypted) {
+    return (
+      <div className="min-h-screen bg-black flex items-center justify-center p-4 relative overflow-hidden">
+        <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-[120px] pointer-events-none"></div>
+        
+        <motion.div 
+          initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }}
+          className="max-w-md w-full text-center space-y-8 bg-white/5 p-10 rounded-3xl border border-white/10 backdrop-blur-xl"
+        >
+            <BlurText text="Encrypted Vault" className="text-3xl font-bold text-white"/>
+            <p className="text-gray-400">
+                Your entries are encrypted. We need your signature to generate the decryption key.
+            </p>
+            <button
+                onClick={handleUnlock}
+                className="w-full py-4 bg-indigo-600 hover:bg-indigo-500 text-white font-bold rounded-xl transition-all shadow-lg hover:shadow-indigo-500/25 flex items-center justify-center gap-2"
+            >
+                <Unlock className="w-5 h-5" />
+                Unlock Memories
+            </button>
+        </motion.div>
+      </div>
+    );
+  }
+
+  // 3. Unlocked & Viewing Diaries
   return (
     <div className="min-h-screen bg-black py-12 sm:py-24 px-4 sm:px-6 relative">
       <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-900/20 rounded-full blur-[120px] pointer-events-none"></div>
@@ -142,13 +233,10 @@ export default function DiaryEntriesPage() {
 
         {(isContractLoading || loading) && (
           <div className="flex flex-col items-center justify-center py-24 sm:py-32 text-indigo-400">
-            <div className="relative mb-4">
-                <div className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
-                <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                    <Lock className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-400" />
-                </div>
-            </div>
-            <p className="text-base sm:text-lg font-medium animate-pulse">Decrypting from IPFS...</p>
+            <Loader2 className="w-10 h-10 animate-spin mb-4" />
+            <p className="text-base sm:text-lg font-medium animate-pulse">
+                {status || "Loading from Blockchain..."}
+            </p>
           </div>
         )}
 
@@ -188,14 +276,19 @@ function DiaryCard({ entry, index }: { entry: DiaryEntry; index: number }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
-      className="group relative bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl sm:rounded-2xl p-4 sm:p-6 transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-500/10 flex flex-col h-full hover:-translate-y-1"
+      className={`group relative bg-white/5 hover:bg-white/10 border ${entry.isLocked ? 'border-red-500/20' : 'border-white/10'} rounded-xl sm:rounded-2xl p-4 sm:p-6 transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-500/10 flex flex-col h-full hover:-translate-y-1`}
     >
       <div className="flex items-center justify-between mb-3 sm:mb-4">
         <div className="flex items-center gap-2 text-xs font-mono text-indigo-300 bg-indigo-500/10 px-2 py-1 rounded-md border border-indigo-500/20">
           <Calendar className="w-3 h-3" />
           {dateObj.toLocaleDateString()}
         </div>
-        <div title="Immutable on IPFS" className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+        
+        {entry.isEncrypted ? (
+           <div title="End-to-End Encrypted" className="w-2 h-2 rounded-full bg-indigo-500 shadow-[0_0_8px_rgba(99,102,241,0.6)]"></div>
+        ) : (
+           <div title="Public IPFS Entry" className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
+        )}
       </div>
 
       <h3 className="text-lg sm:text-xl font-bold text-white mb-2 sm:mb-3 line-clamp-1 group-hover:text-indigo-300 transition-colors">
@@ -217,9 +310,9 @@ function DiaryCard({ entry, index }: { entry: DiaryEntry; index: number }) {
           ))}
         </div>
         
-        <div className="text-[9px] sm:text-[10px] text-gray-600 font-mono truncate hover:text-indigo-400 cursor-copy transition-colors flex items-center gap-1">
-            <Lock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
-            CID: {entry.hash.slice(0, 12)}...
+        <div className="flex justify-between items-center text-[9px] sm:text-[10px] text-gray-600 font-mono">
+            <span>CID: {entry.hash.slice(0, 8)}...</span>
+            {entry.isEncrypted && <Lock className="w-3 h-3 text-indigo-400" />}
         </div>
       </div>
     </motion.div>

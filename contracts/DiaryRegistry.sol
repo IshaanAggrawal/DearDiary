@@ -2,24 +2,18 @@
 pragma solidity ^0.8.0;
 
 contract DiaryRegistry {
-    struct Entry {
-        string ipfsHash;
+    struct DiaryEntry {
+        string ipfsHash; // The CID from Pinata
         uint256 timestamp;
     }
 
-    mapping(address => Entry[]) private userEntries;
-    event EntryAdded(address indexed user, string ipfsHash, uint256 timestamp);
+    mapping(address => DiaryEntry[]) private userDiaries;
 
     function addEntry(string memory _ipfsHash) public {
-        userEntries[msg.sender].push(Entry({
-            ipfsHash: _ipfsHash,
-            timestamp: block.timestamp
-        }));
-        
-        emit EntryAdded(msg.sender, _ipfsHash, block.timestamp);
+        userDiaries[msg.sender].push(DiaryEntry(_ipfsHash, block.timestamp));
     }
 
-    function getMyEntries() public view returns (Entry[] memory) {
-        return userEntries[msg.sender];
+    function getMyDiaries() public view returns (DiaryEntry[] memory) {
+        return userDiaries[msg.sender];
     }
 }

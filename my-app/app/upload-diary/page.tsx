@@ -4,9 +4,10 @@ import { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Lock, Upload, FileText, Calendar, Tag, Wallet, CheckCircle, Loader2 } from 'lucide-react';
 import BlurText from '@/components/ui/BlurText';
-import { useAccount, useWriteContract, useConnect } from 'wagmi';
+import { useAccount, useWriteContract, useConnect, useSignMessage } from 'wagmi';
 import { uploadToIPFS } from '@/utils/pinata';
 import { injected } from 'wagmi/connectors';
+import { generateKey, encryptData } from '@/utils/encryption';
 
 const CONTRACT_ADDRESS = process.env.NEXT_PUBLIC_DIARY_CONTRACT as `0x${string}`;
 const CONTRACT_ABI = [
@@ -27,7 +28,7 @@ export default function UploadDiaryPage() {
   const { isConnected } = useAccount();
   const { connect } = useConnect();
   const { writeContractAsync } = useWriteContract();
-
+  const { signMessageAsync } = useSignMessage();
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [isSuccess, setIsSuccess] = useState(false);
   const [status, setStatus] = useState("");
@@ -37,17 +38,29 @@ export default function UploadDiaryPage() {
     if (!content) return alert("Diary entry cannot be empty!");
     
     setIsSubmitting(true);
-    setStatus("1/3: Encrypting & Uploading to IPFS...");
+    setStatus("1/4: Requesting Encryption Signature...");
     
     try {
-      const ipfsHash = await uploadToIPFS({
-        title, 
-        text: content,
-        tags,  
-        timestamp: new Date().toISOString()
+      const signature = await signMessageAsync({ 
+        message: "Sign this message to generate your secure encryption key for DearDiary." 
       });
       
-      setStatus("2/3: Waiting for Wallet Signature...");
+      setStatus("2/4: Encrypting & Uploading...");
+      const secretKey = generateKey(signature);
+      const diaryPayload = {
+        title,
+        content,
+        tags,
+        timestamp: new Date().toISOString()
+      };
+      
+      const encryptedContent = encryptData(diaryPayload, secretKey);
+      const ipfsHash = await uploadToIPFS({
+        encrypted: true, 
+        ciphertext: encryptedContent 
+      });
+      
+      setStatus("3/4: Saving to Blockchain...");
 
       const txHash = await writeContractAsync({
         address: CONTRACT_ADDRESS,
@@ -56,30 +69,25 @@ export default function UploadDiaryPage() {
         args: [ipfsHash],
       });
 
-      setStatus("3/3: Success! Verifying...");
+      setStatus("4/4: Success! Entry Secured.");
       console.log("Tx Hash:", txHash);
-      setContent("");
       
       setIsSuccess(true);
       setTimeout(() => {
         setTitle('');
         setTags('');
+        setContent('');
         setIsSuccess(false);
         setStatus("");
       }, 3000);
 
     } catch (error: any) {
       console.error("Submission Error:", error);
-      if (error.code === 4001 || error.message.includes("User rejected") || error.message.includes("denied account access")) {
-        setStatus("Transaction cancelled by user.");
-      } else {
-        setStatus("Error: " + (error.message || "Transaction failed"));
-      }
+      setStatus("Error: " + (error.message || "Transaction failed"));
     } finally {
       setIsSubmitting(false);
     }
   };
-
   const itemVariants = {
     hidden: { opacity: 0, y: 20 },
     show: { opacity: 1, y: 0, transition: { duration: 0.5 } },
