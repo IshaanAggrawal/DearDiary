@@ -90,25 +90,22 @@ export default function DiaryEntriesPage() {
 
   if (!isConnected) {
     return (
-      <div className="min-h-screen bg-black flex items-center justify-center p-6 relative overflow-hidden">
-        {/* 1. Background Atmosphere */}
+      <div className="min-h-screen bg-black flex items-center justify-center p-4 sm:p-6 relative overflow-hidden">
         <div className="absolute top-0 left-0 w-96 h-96 bg-indigo-600/20 rounded-full blur-[100px] -translate-x-1/2 -translate-y-1/2"></div>
         <div className="absolute bottom-0 right-0 w-96 h-96 bg-purple-600/10 rounded-full blur-[100px] translate-x-1/2 translate-y-1/2"></div>
 
-        {/* 2. Glass Card */}
         <motion.div 
           initial={{ opacity: 0, scale: 0.95 }}
           animate={{ opacity: 1, scale: 1 }}
           transition={{ duration: 0.5 }}
-          className="max-w-md w-full bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-10 text-center shadow-2xl shadow-black/50"
+          className="w-full max-w-md bg-white/5 backdrop-blur-2xl border border-white/10 rounded-3xl p-6 sm:p-10 text-center shadow-2xl shadow-black/50"
         >
-          {/* Icon Glow */}
-          <div className="w-24 h-24 bg-gradient-to-tr from-indigo-500/20 to-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-8 border border-white/10 shadow-[0_0_30px_rgba(99,102,241,0.2)]">
-            <Lock className="w-10 h-10 text-indigo-400" />
+          <div className="w-20 h-20 sm:w-24 sm:h-24 bg-gradient-to-tr from-indigo-500/20 to-purple-500/20 rounded-full flex items-center justify-center mx-auto mb-6 sm:mb-8 border border-white/10 shadow-[0_0_30px_rgba(99,102,241,0.2)]">
+            <Lock className="w-8 h-8 sm:w-10 sm:h-10 text-indigo-400" />
           </div>
           
-          <h2 className="text-3xl font-bold text-white mb-3">Timeline Locked</h2>
-          <p className="text-gray-400 mb-8 leading-relaxed">
+          <h2 className="text-2xl sm:text-3xl font-bold text-white mb-3">Timeline Locked</h2>
+          <p className="text-gray-400 mb-6 sm:mb-8 leading-relaxed text-sm sm:text-base">
             Your personal history is encrypted on the blockchain. We need your wallet signature to verify ownership and decrypt your entries.
           </p>
 
@@ -120,7 +117,7 @@ export default function DiaryEntriesPage() {
             Connect & Decrypt
           </button>
           
-          <div className="mt-6 flex items-center justify-center gap-2 text-xs text-gray-500">
+          <div className="mt-4 sm:mt-6 flex items-center justify-center gap-2 text-xs text-gray-500">
             <ShieldCheck className="w-3 h-3" />
             <span>Zero-Knowledge Privacy • End-to-End Encryption</span>
           </div>
@@ -129,54 +126,51 @@ export default function DiaryEntriesPage() {
     );
   }
   return (
-    <div className="min-h-screen bg-black py-24 px-6 relative">
+    <div className="min-h-screen bg-black py-12 sm:py-24 px-4 sm:px-6 relative">
       <div className="absolute top-0 right-0 w-96 h-96 bg-indigo-900/20 rounded-full blur-[120px] pointer-events-none"></div>
 
       <div className="max-w-6xl mx-auto">
-        <div className="mb-12">
-          <h1 className="text-4xl md:text-5xl font-bold text-white mb-4">
+        <div className="mb-8 sm:mb-12">
+          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold text-white mb-4">
             <BlurText text="Your Timeline" />
           </h1>
-          <p className="text-gray-400 flex items-center gap-2">
+          <p className="text-gray-400 flex items-center gap-2 text-sm sm:text-base">
             <BookOpen className="w-4 h-4 text-indigo-400" />
             {hydratedEntries.length} Entries secured on Sepolia Network
           </p>
         </div>
 
-        {/* LOADING STATE */}
         {(isContractLoading || loading) && (
-          <div className="flex flex-col items-center justify-center py-32 text-indigo-400">
+          <div className="flex flex-col items-center justify-center py-24 sm:py-32 text-indigo-400">
             <div className="relative mb-4">
-                <div className="w-16 h-16 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
+                <div className="w-12 h-12 sm:w-16 sm:h-16 border-4 border-indigo-500/30 border-t-indigo-500 rounded-full animate-spin"></div>
                 <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2">
-                    <Lock className="w-6 h-6 text-indigo-400" />
+                    <Lock className="w-5 h-5 sm:w-6 sm:h-6 text-indigo-400" />
                 </div>
             </div>
-            <p className="text-lg font-medium animate-pulse">Decrypting from IPFS...</p>
+            <p className="text-base sm:text-lg font-medium animate-pulse">Decrypting from IPFS...</p>
           </div>
         )}
 
-        {/* EMPTY STATE */}
         {!loading && hydratedEntries.length === 0 && (
           <motion.div 
             initial={{ opacity: 0 }} animate={{ opacity: 1 }}
-            className="bg-white/5 border border-white/10 rounded-3xl p-16 text-center max-w-2xl mx-auto backdrop-blur-sm"
+            className="bg-white/5 border border-white/10 rounded-2xl sm:rounded-3xl p-8 sm:p-16 text-center max-w-2xl mx-auto backdrop-blur-sm"
           >
-            <div className="w-20 h-20 bg-gray-800/50 rounded-full flex items-center justify-center mx-auto mb-6 border border-white/5">
-              <BookOpen className="w-10 h-10 text-gray-600" />
+            <div className="w-16 h-16 sm:w-20 sm:h-20 bg-gray-800/50 rounded-full flex items-center justify-center mx-auto mb-4 sm:mb-6 border border-white/5">
+              <BookOpen className="w-8 h-8 sm:w-10 sm:h-10 text-gray-600" />
             </div>
-            <h3 className="text-2xl font-bold text-white mb-3">No Memories Found</h3>
-            <p className="text-gray-400 mb-8 max-w-md mx-auto">
+            <h3 className="text-xl sm:text-2xl font-bold text-white mb-3">No Memories Found</h3>
+            <p className="text-gray-400 mb-6 sm:mb-8 max-w-md mx-auto text-sm sm:text-base">
                 Your decentralized timeline is empty. Create your first immutable memory on the blockchain today.
             </p>
-            <a href="/upload-diary" className="inline-flex items-center gap-2 px-6 py-3 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-xl transition-all">
+            <a href="/upload-diary" className="inline-flex items-center gap-2 px-4 py-2 sm:px-6 sm:py-3 bg-white/10 hover:bg-white/20 text-white font-semibold rounded-xl transition-all text-sm sm:text-base">
                 Write First Entry
             </a>
           </motion.div>
         )}
 
-        {/* DIARY GRID */}
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6">
           {hydratedEntries.map((entry, index) => (
             <DiaryCard key={entry.hash} entry={entry} index={index} />
           ))}
@@ -194,9 +188,9 @@ function DiaryCard({ entry, index }: { entry: DiaryEntry; index: number }) {
       initial={{ opacity: 0, y: 20 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.5, delay: index * 0.1 }}
-      className="group relative bg-white/5 hover:bg-white/10 border border-white/10 rounded-2xl p-6 transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-500/10 flex flex-col h-full hover:-translate-y-1"
+      className="group relative bg-white/5 hover:bg-white/10 border border-white/10 rounded-xl sm:rounded-2xl p-4 sm:p-6 transition-all duration-300 hover:shadow-2xl hover:shadow-indigo-500/10 flex flex-col h-full hover:-translate-y-1"
     >
-      <div className="flex items-center justify-between mb-4">
+      <div className="flex items-center justify-between mb-3 sm:mb-4">
         <div className="flex items-center gap-2 text-xs font-mono text-indigo-300 bg-indigo-500/10 px-2 py-1 rounded-md border border-indigo-500/20">
           <Calendar className="w-3 h-3" />
           {dateObj.toLocaleDateString()}
@@ -204,27 +198,27 @@ function DiaryCard({ entry, index }: { entry: DiaryEntry; index: number }) {
         <div title="Immutable on IPFS" className="w-2 h-2 rounded-full bg-green-500 shadow-[0_0_8px_rgba(34,197,94,0.6)]"></div>
       </div>
 
-      <h3 className="text-xl font-bold text-white mb-3 line-clamp-1 group-hover:text-indigo-300 transition-colors">
+      <h3 className="text-lg sm:text-xl font-bold text-white mb-2 sm:mb-3 line-clamp-1 group-hover:text-indigo-300 transition-colors">
         {entry.title}
       </h3>
 
-      <p className="text-gray-400 text-sm leading-relaxed mb-6 line-clamp-4 flex-grow">
+      <p className="text-gray-400 text-xs sm:text-sm leading-relaxed mb-4 sm:mb-6 line-clamp-4 flex-grow">
         {entry.content}
       </p>
 
-      <div className="pt-4 border-t border-white/5 mt-auto">
-        <div className="flex flex-wrap gap-2 mb-3">
+      <div className="pt-3 sm:pt-4 border-t border-white/5 mt-auto">
+        <div className="flex flex-wrap gap-2 mb-2 sm:mb-3">
           {entry.tags.split(',').map((tag, i) => (
             tag.trim() && (
-              <span key={i} className="text-[10px] uppercase tracking-wider text-gray-500 flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded-full">
+              <span key={i} className="text-[10px] sm:text-xs uppercase tracking-wider text-gray-500 flex items-center gap-1 bg-white/5 px-2 py-0.5 rounded-full">
                 <Tag className="w-3 h-3" /> {tag.trim()}
               </span>
             )
           ))}
         </div>
         
-        <div className="text-[10px] text-gray-600 font-mono truncate hover:text-indigo-400 cursor-copy transition-colors flex items-center gap-1">
-            <Lock className="w-3 h-3" />
+        <div className="text-[9px] sm:text-[10px] text-gray-600 font-mono truncate hover:text-indigo-400 cursor-copy transition-colors flex items-center gap-1">
+            <Lock className="w-2.5 h-2.5 sm:w-3 sm:h-3" />
             CID: {entry.hash.slice(0, 12)}...
         </div>
       </div>
