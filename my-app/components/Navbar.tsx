@@ -1,11 +1,25 @@
 "use client"
 import type React from "react"
-import { Lock, Menu, PlusCircle } from "lucide-react"
+import { Lock, LogOut, Menu, PlusCircle } from "lucide-react"
 import useScrollPosition from "../hooks/useScrollPosition"
 import { motion } from 'framer-motion'
 import Link from 'next/link'
+import { useAccount, useConnect, useDisconnect } from 'wagmi';
+import { injected } from 'wagmi/connectors';
+import { useEffect, useState } from "react"
 
 const Navbar: React.FC = () => {
+  const { address, isConnected } = useAccount();
+  const { connect } = useConnect();
+  const { disconnect } = useDisconnect();
+  const [mounted, setMounted] = useState(false);
+  useEffect(() => setMounted(true), []);
+
+  const formatAddress = (addr: string | undefined) => {
+    if (!addr) return "";
+    return `${addr.slice(0, 6)}...${addr.slice(-4)}`;
+  };
+
   const isScrolled = useScrollPosition(80)
 
   const baseClasses = `
@@ -56,17 +70,41 @@ const Navbar: React.FC = () => {
             Upload Entry
           </Link>
           
-          <button
-            className={`
-              bg-emerald-500 hover:bg-emerald-400
-              text-white font-semibold rounded-lg
-              shadow-lg shadow-emerald-500/30 hover:shadow-emerald-400/50
-              transition-all duration-300 
-              ${buttonClasses}
-            `}
-          >
-            Connect Wallet
-          </button>
+            {mounted && isConnected ? (
+             <button
+             onClick={() => disconnect()}
+             className={`
+               group flex items-center gap-2
+               bg-gray-800 hover:bg-red-500/90
+               text-gray-200 hover:text-white font-mono font-semibold rounded-lg
+               border border-white/10 hover:border-red-500/50
+               shadow-lg shadow-black/20 hover:shadow-red-500/20
+               transition-all duration-300 
+               ${buttonClasses}
+             `}
+           >
+             {/* Show Address by default, show "Disconnect" on hover */}
+             <span className="block group-hover:hidden">
+                {formatAddress(address)}
+             </span>
+             <span className="hidden group-hover:flex items-center gap-2">
+                <LogOut className="w-4 h-4" /> Disconnect
+             </span>
+           </button>
+          ) : (
+            <button
+              onClick={() => connect({ connector: injected() })}
+              className={`
+                bg-emerald-500 hover:bg-emerald-400
+                text-white font-semibold rounded-lg
+                shadow-lg shadow-emerald-500/30 hover:shadow-emerald-400/50
+                transition-all duration-300 
+                ${buttonClasses}
+              `}
+            >
+              Connect Wallet
+            </button>
+          )}
           
           <Link 
             href="/upload-diary"
