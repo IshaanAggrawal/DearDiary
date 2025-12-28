@@ -1,0 +1,14 @@
+services:
+  web:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: diary-app
+    restart: always
+    ports:
+      - "8080:8080"
+    environment:
+      - NODE_ENV=production
+      - NEXT_PUBLIC_PINATA_API_KEY=a3c8ff39d1e1496c16e2
+      - NEXT_PUBLIC_PINATA_SECRET_KEY=90935759b1795a63cec335ab9431f52e1b798ae7f6ecbd5a3fad620def5e5f20
+      - NEXT_PUBLIC_DIARY_CONTRACT=0x5B44022cDb338f18fF5b4998A10E8022a0c626c2
